@@ -35,10 +35,13 @@ class SpectrometerMotor:
         else:
             self.__direction = 0
 
-    def _enable(self):
+    def reset_step_counter(self):
+        self._current_steps = 0
+
+    def enable(self):
         self.__EN.value(0)
 
-    def _disable(self):
+    def disable(self):
         self.__EN.value(1)
 
     def current_steps(self) -> int:
@@ -57,7 +60,7 @@ class SpectrometerMotor:
 
     def rotate_by_steps(self, steps: int):
         """Rotate by a certain number of steps"""
-        self._enable()
+        self.enable()
         self._set_direction(steps)
         goal_steps = self.current_steps() + steps
         while self.current_steps() != goal_steps:
@@ -70,14 +73,14 @@ class SpectrometerMotor:
     def rotate_to_degrees(self, degrees: float):
         """Rotate to a certain position"""
         delta_1 = degrees % 360 - self.current_degrees() % 360
-        delta_2 = (self.current_steps() % 360 + 360) - degrees % 360
+        delta_2 = (self.current_degrees() % 360 + 360) - degrees % 360
         if abs(delta_1) < abs(delta_2):
             self.rotate_by_degrees(delta_1)
         else:
             self.rotate_by_degrees(delta_2)
 
     def rotate_until(self, cond: Callable[[], bool], direction=1):
-        self._enable()
+        self.enable()
         self._set_direction(direction)
         while not cond():
             self._make_step()

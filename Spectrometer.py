@@ -1,18 +1,15 @@
-from math import sin, asin
-from necessary_functions import (
-    is_light,
-    rotate_by_degree,
-    current_degree,
-    default_degree,
-    rotate_by_step,
-    get_intensity,
-)
+from math import isclose, sin, asin
+from SpectrometerGrating import SpectrometerGrating
+from necessary_functions import is_light, get_intensity
 
 
 class Spectrometer:
-    def __init__(self, rotate_step=0.01, trust_quantity=2):
+    def __init__(
+        self, grating: SpectrometerGrating, rotate_step=0.01, trust_quantity=2
+    ):
+        self.__grating = grating
         try:
-            self.__load_parameters()  #пытаемся загрузить параметры, если они уже есть
+            self.__load_parameters()  # пытаемся загрузить параметры, если они уже есть
         except FileNotFoundError:
             pass
         self.current_grating = 0  # текущая решётка
@@ -41,22 +38,29 @@ class Spectrometer:
         dark_counter = 0
         light_on_start = is_light()
 
-        degree_start = current_degree()
+        degree_start = self.__grating.current_degrees()
 
-        # Начинаем с тёмной точки
-        while light_on_start:
-            rotate_by_degree(self.ROTATE_STEP)
+        def cond_1():
+            # Начинаем с тёмной точки
+            if not light_on_start:
+                return True
+            nonlocal dark_counter
             if is_light():
                 dark_counter += 1
             else:
                 dark_counter = 0
-            if dark_counter == self.TRUST_QUANTITY:
-                break
+            return dark_counter == self.TRUST_QUANTITY
+
+        self.__grating.rotate_until(cond_1)
+
         start_of_light = False
         light_counter = 0
         dark_counter = 0
 
-        while degree_start != current_degree():
+        def cond_2():
+            nonlocal degree_start, dark_counter, light_counter, start_of_light
+            if isclose(degree_start, self.__grating.current_degrees()):
+                return True
             if not is_light():
                 dark_counter += 1
                 light_counter = 0
@@ -65,20 +69,24 @@ class Spectrometer:
                 dark_counter = 0
 
             if start_of_light and dark_counter == self.TRUST_QUANTITY:
-                return self.__find_middle(
-                    start_of_light, current_degree() - self.TRUST_QUANTITY + 1
-                )
+                return True
             elif not start_of_light and light_counter == self.TRUST_QUANTITY:
-                start_of_light = current_degree() - self.TRUST_QUANTITY + 1
+                start_of_light = (
+                    self.__grating.current_degrees() - self.TRUST_QUANTITY + 1
+                )
+            return False
 
-            rotate_by_degree(self.ROTATE_STEP)
+        self.__grating.rotate_until(cond_2)
+        if start_of_light and dark_counter == self.TRUST_QUANTITY:
+            return self.__find_middle(
+                start_of_light,
+                self.__grating.current_degrees() - self.TRUST_QUANTITY + 1,
+            )
         return None
 
     def reset_initial_angle(self):
-        default_degree()
-        if self.current_grating>0:
-            rotate_by_degree(120*self.current_grating)
-        self.__phi0 = current_degree()
+        self.__grating.align_to_grating(self.current_grating)
+        self.__phi0 = self.__grating.current_degrees()
 
     def calibrate(self, lengthwave):
         """Функция калибровки спектрометра"""
@@ -98,19 +106,19 @@ class Spectrometer:
 
     def rotate_to_default_degree(self):
         """Функция устанавливает спектрометр на начальное положение"""
-        rotate_by_degree(self.__phi0 - current_degree())
+        self.__grating.rotate_to_degrees(self.__phi0)
 
     def rotate_by_wavelength(self, wavelength):
         """Функция устанавливает спектрометр на заданную длину волны"""
         if wavelength < 0 or wavelength > self.__k:
             raise Exception(f"Длина волны должна быть от 0 до {self.__k}")
-        rotate_by_degree(self.__phi0 - current_degree() + asin(wavelength / self.__k))
+        self.__grating.rotate_to_degrees(self.__phi0 + asin(wavelength / self.__k))
 
     def get_current_wavelength(self):
         """Возвращает текущую длину волны"""
         if not self.__k:
             raise Exception("Требуется калибровка")
-        return self.__k * sin(current_degree() - self.__phi0)
+        return self.__k * sin(self.__grating.current_degrees() - self.__phi0)
 
     def next_grating(self):
         """Меняет решётку на следующую"""
@@ -136,7 +144,6 @@ class Spectrometer:
             self.__k = None
         self.rotate_to_default_degree()
 
-
     def get_current_grating(self):
         """Возвращает номер текущей решётки"""
         return self.current_grating
@@ -147,10 +154,13 @@ class Spectrometer:
         if not self.__k:
             raise Exception("Требуется калибровка")
         statistics = []
-        rotate_by_degree(self.__scan_from - current_degree())
-        while current_degree() < self.__scan_to:
-            rotate_by_step()
+        self.__grating.rotate_to_degrees(self.__scan_from)
+
+        def cond_1():
             statistics.append((self.get_current_wavelength(), get_intensity()))
+            return self.__grating.current_degrees() >= self.__scan_to
+
+        self.__grating.rotate_until(cond_1)
         return statistics
 
     def get_scan_from(self):
@@ -175,12 +185,12 @@ class Spectrometer:
 
     def __save_parameters(self):
         """Сохраняет параметры в файл"""
-        with(open(f"parameters{self.current_grating}.txt"), "w") as file:
-            file.write(self.__phi0)
-            file.write(self.__k)
+        with open(f"parameters{self.current_grating}.txt", "w") as file:
+            file.write(str(self.__phi0))
+            file.write(str(self.__k))
 
     def __load_parameters(self):
         """Загружает параметры из файла; бросает исключение, если файла нет"""
-        with(open(f"parameters{self.current_grating}.txt"), "r") as file:
+        with open(f"parameters{self.current_grating}.txt", "r") as file:
             self.__phi0 = float(file.readline())
             self.__k = float(file.readline())
