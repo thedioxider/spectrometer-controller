@@ -96,6 +96,8 @@ class Spectrometer:
 
     def rotate_by_wavelength(self, wavelength):
         """Функция устанавливает спектрометр на заданную длину волны"""
+        if wavelength < 0 or wavelength > self.__k:
+            raise Exception(f"Длина волны должна быть от 0 до {self.__k}")
         rotate_by_degree(self.__phi0 - current_degree() + asin(wavelength / self.__k))
 
     def get_current_wavelength(self):
