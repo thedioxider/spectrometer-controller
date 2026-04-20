@@ -5,14 +5,10 @@ from machine import Pin
 
 
 class SpectrometerMotor:
-    __EN_PIN = -1
-    __DIR_PIN = -1
-    __PUL_PIN = -1
-
-    def __init__(self, revolution_steps: int = 500):
-        self.__EN = Pin(-1, Pin.OUT)
-        self.__DIR = Pin(-1, Pin.OUT)
-        self.__PUL = Pin(-1, Pin.OUT)
+    def __init__(self, en_pin, dir_pin, pul_pin, revolution_steps: int = 500):
+        self.__EN = Pin(en_pin, Pin.OUT)
+        self.__DIR = Pin(dir_pin, Pin.OUT)
+        self.__PUL = Pin(pul_pin, Pin.OUT)
         # Step counter
         self._current_steps = 0
         # Number of steps needed for a full revolution
