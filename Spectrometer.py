@@ -23,9 +23,25 @@ class Spectrometer:
         self.__scan_from = 350
         self.__scan_to = 500
 
+        self.GRATINGS = """1. Первая дифракционная решётка
+        2. Вторая дифракционная решётка
+        3. Третья дифракционная решётка"""
+
         # начальное положение решётки; угол, при котором угол
         # падения равен углу вторичной световой волны
         self.reset_initial_angle()
+
+    def __save_parameters(self):
+        """Сохраняет параметры в файл"""
+        with open(f"parameters{self.current_grating}.txt", "w") as file:
+            file.write(str(self.__phi0))
+            file.write(str(self.__k))
+
+    def __load_parameters(self):
+        """Загружает параметры из файла; бросает исключение, если файла нет"""
+        with open(f"parameters{self.current_grating}.txt", "r") as file:
+            self.__phi0 = float(file.readline())
+            self.__k = float(file.readline())
 
     def __find_middle(self, phi1, phi2):
         """Вспомогательная функция для поиска середины светового отрезка"""
@@ -120,7 +136,7 @@ class Spectrometer:
             raise Exception("Требуется калибровка")
         return self.__k * sin(self.__grating.current_degrees() - self.__phi0)
 
-    def next_grating(self):
+    def __next_grating(self):
         """Меняет решётку на следующую"""
         if self.__k:
             self.__save_parameters()
@@ -132,7 +148,7 @@ class Spectrometer:
             self.__k = None
         self.rotate_to_default_degree()
 
-    def prev_grating(self):
+    def __prev_grating(self):
         """Меняет решётку на предыдущую"""
         if self.__k:
             self.__save_parameters()
@@ -183,14 +199,14 @@ class Spectrometer:
             raise Exception("Требуется калибровка")
         self.__scan_to = scan_to
 
-    def __save_parameters(self):
-        """Сохраняет параметры в файл"""
-        with open(f"parameters{self.current_grating}.txt", "w") as file:
-            file.write(str(self.__phi0))
-            file.write(str(self.__k))
+    def get_gratings(self):
+        return self.GRATINGS
 
-    def __load_parameters(self):
-        """Загружает параметры из файла; бросает исключение, если файла нет"""
-        with open(f"parameters{self.current_grating}.txt", "r") as file:
-            self.__phi0 = float(file.readline())
-            self.__k = float(file.readline())
+    def change_grating(self, new_grating):
+        """Меняет решётку на заданную"""
+        if new_grating < 0 or new_grating > 2:
+            raise Exception("Неверный номер решётки")
+        elif (new_grating-self.current_grating)%3 == 1:
+            self.__next_grating()
+        elif (new_grating-self.current_grating)%3 == 2:
+            self.__prev_grating()
