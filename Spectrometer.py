@@ -11,8 +11,6 @@ from necessary_functions import (
 
 class Spectrometer:
     def __init__(self, rotate_step=0.01, trust_quantity=2):
-        self.__phi0 = None  # начальное положение решётки; угол, при котором угол
-        # падения равен углу вторичной световой волны
         self.__k = 0  # коэффициент при длине волны, равный: 2d*cos(theta), где
         # d - расстояние между щелями,
         # theta - угол падения при начальном положении решётки
@@ -26,6 +24,10 @@ class Spectrometer:
         # Если установить TRUST_QUANTITY = 1, то будет поиск до первого срабатывания
         self.__scan_from = 350
         self.__scan_to = 500
+
+        # начальное положение решётки; угол, при котором угол
+        # падения равен углу вторичной световой волны
+        self.reset_initial_angle()
 
     def __find_middle(self, phi1, phi2):
         """Вспомогательная функция для поиска середины светового отрезка"""
@@ -71,14 +73,18 @@ class Spectrometer:
             rotate_by_degree(self.ROTATE_STEP)
         return None
 
+    def reset_initial_angle(self):
+        default_degree()
+        self.__phi0 = current_degree()
+
     def calibrate(self, lengthwave, grating):
         """Функция калибровки спектрометра"""
-        if not self.__phi0:
-            default_degree()
-        else:
-            self.rotate_to_default_degree()
-        self.__phi0 = current_degree()
+        self.reset_initial_angle()
+
         maximum = self.__find_first_light()
+        if maximum is None:
+            print("no light found")
+            return
 
         self.__k = lengthwave / sin(maximum - self.__phi0)
 
