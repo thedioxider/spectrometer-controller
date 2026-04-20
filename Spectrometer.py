@@ -1,0 +1,115 @@
+from  math import sin, asin
+from necessary_functions import is_light, rotate_by_degree, current_degree, default_degree, rotate_by_step, \
+    get_intensity
+
+
+class Spectrometer:
+    def __init__(self, rotate_step=0.01, trust_quantity=2):
+        self.__phi0 = None #начальное положение решётки; угол, при котором угол
+        # падения равен углу вторичной световой волны
+        self.__k = 0 #коэффициент при длине волны, равный: 2d*cos(theta), где
+        # d - расстояние между щелями,
+        # theta - угол падения при начальном положении решётки
+        self.current_grating = 0 #текущая решётка
+        self.ROTATE_STEP = rotate_step #шаг надо подбирать
+        self.TRUST_QUANTITY = trust_quantity #количество точек, которое надо наблюдать, чтобы считать,
+                            # что свет проходит (или не проходит) через щель.
+                            # Это на всякий случай, для защиты от ложных срабатываний
+                            # Если установить TRUST_QUANTITY = 1, то будет поиск до первого срабатывания
+        self.__scan_from = 350
+        self.__scan_to = 500
+
+
+    def __find_middle(self, phi1, phi2):
+        """Вспомогательная функция для поиска середины светового отрезка"""
+        if phi1 > phi2:
+            phi2+=360
+        return ((phi1+phi2)/2)%360
+
+    def __find_first_light(self):
+        """Если дифф-решётка отцентрована, то достаточно найти только один максимум"""
+        dark_counter = 0
+        light_on_start = is_light()
+
+        degree_start = current_degree()
+
+        # Начинаем с тёмной точки
+        while light_on_start:
+            rotate_by_degree(self.ROTATE_STEP)
+            if is_light(): dark_counter += 1
+            else: dark_counter = 0
+            if dark_counter == self.TRUST_QUANTITY:
+              break
+        start_of_light = False
+        light_counter = 0
+        dark_counter = 0
+
+        while degree_start != current_degree():
+            if not is_light():
+                dark_counter += 1
+                light_counter = 0
+            else:
+                light_counter += 1
+                dark_counter = 0
+
+            if start_of_light and dark_counter == self.TRUST_QUANTITY:
+                return self.__find_middle(start_of_light, current_degree()
+                                                       - self.TRUST_QUANTITY + 1)
+            elif not start_of_light and light_counter == self.TRUST_QUANTITY:
+                start_of_light = current_degree() - self.TRUST_QUANTITY + 1
+
+            rotate_by_degree(self.ROTATE_STEP)
+        return None
+
+
+    def calibrate(self, lengthwave, grating):
+        """Функция калибровки спектрометра"""
+        if not self.__phi0: default_degree()
+        else: self.rotate_to_default_degree()
+        self.__phi0 = current_degree()
+        maximum = self.__find_first_light()
+
+        self.__k = lengthwave/sin(maximum-self.__phi0)
+
+        self.rotate_to_default_degree()
+
+    def rotate_to_default_degree(self):
+        """Функция устанавливает спектрометр на начальное положение"""
+        rotate_by_degree(self.__phi0-current_degree())
+
+    def rotate_by_wavelength(self, wavelength):
+        """Функция устанавливает спектрометр на заданную длину волны"""
+        rotate_by_degree(self.__phi0-current_degree()+asin(wavelength/self.__k))
+
+    def get_current_wavelength(self):
+        """Возвращает текущую длину волны"""
+        return self.__k*sin(current_degree()-self.__phi0)
+
+    def next_grating(self):
+        """Меняет решётку на следующую"""
+        self.current_grating = (self.current_grating + 1)%3
+        self.__phi0 = (self.__phi0 + 120)%360
+        self.rotate_to_default_degree()
+
+    def get_current_grating(self):
+        """Возвращает номер текущей решётки"""
+        return self.current_grating
+
+    def start_scan(self):
+        """Выполняет сканирование с заданного угла до заданного угла
+        и возвращает массив кортежей (угол, интенсивность)"""
+        statistics = []
+        rotate_by_degree(self.__scan_from-current_degree())
+        while current_degree() < self.__scan_to:
+            rotate_by_step()
+            statistics.append((current_degree(),get_intensity()))
+        return statistics
+
+    def get_scan_from(self):
+        return self.__scan_from
+    def set_scan_from(self,scan_from):
+        self.__scan_from = scan_from
+    def get_scan_to(self):
+        return self.__scan_to
+    def set_scan_to(self,scan_to):
+        self.__scan_to = scan_to
