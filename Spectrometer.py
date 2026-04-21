@@ -1,6 +1,8 @@
 from math import isclose, sin, asin
 from SpectrometerGrating import SpectrometerGrating
 from necessary_functions import is_light, get_intensity
+from GratingParameters import  GratingParameters
+import json
 
 
 class Spectrometer:
@@ -23,13 +25,13 @@ class Spectrometer:
         self.__scan_from = 350
         self.__scan_to = 500
 
-        self.GRATINGS = """1. Первая дифракционная решётка
-        2. Вторая дифракционная решётка
-        3. Третья дифракционная решётка"""
+        self.__gratings_parameters = [GratingParameters("grating_parameters.json", i)
+                                      for i in range(3)]
 
         # начальное положение решётки; угол, при котором угол
         # падения равен углу вторичной световой волны
         self.reset_initial_angle()
+
 
     def __save_parameters(self):
         """Сохраняет параметры в файл"""
@@ -200,7 +202,18 @@ class Spectrometer:
         self.__scan_to = scan_to
 
     def get_gratings(self):
-        return self.GRATINGS
+        """Возращает json со всеми параметрами всех решёток"""
+        jsons = [gr.get_parameters() for gr in self.__gratings_parameters]
+        gratings = []
+        for i, s in enumerate(jsons):
+            grating = json.loads(s)
+            grating["id"] = i + 1
+            gratings.append(grating)
+        return json.dumps({"gratings": gratings})
+    def update_grating_parameters(self, parameters):
+        """Принимает json-строку с параметрами id, groove_density_mm и blaze_nm и обновляет параметры одной решётки"""
+        data = json.loads(parameters)
+        self.__gratings_parameters[data["id"]-1].update_parameters(parameters)
 
     def change_grating(self, new_grating):
         """Меняет решётку на заданную"""
