@@ -23,7 +23,10 @@ class SpectrometerMotor:
         sleep_us(2)
         self.__PUL.value(0)
         sleep_us(self.__rate_period)
-        self._current_steps += self.__direction
+        if self.__direction:
+            self._current_steps += 1
+        else:
+            self._current_steps -= 1
 
     def _set_direction(self, value):
         if value > 0:

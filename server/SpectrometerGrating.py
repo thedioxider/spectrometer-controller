@@ -8,7 +8,7 @@ class SpectrometerGrating:
         self,
         motor: SpectrometerMotor,
         optical_pair: SpectrometerOpticalPair,
-        center_offset: float = 60,
+        center_offset: float = 0,
         motor_ratio: float = 10,
     ):
         self.__motor = motor

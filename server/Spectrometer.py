@@ -51,7 +51,7 @@ class Spectrometer:
             phi2 += 360
         return ((phi1 + phi2) / 2) % 360
 
-    def __find_first_light(self):
+    def __find_first_light(self, direction=1):
         """Если дифф-решётка отцентрована, то достаточно найти только один максимум"""
         dark_counter = 0
         light_on_start = is_light()
@@ -69,7 +69,7 @@ class Spectrometer:
                 dark_counter = 0
             return dark_counter == self.TRUST_QUANTITY
 
-        self.__grating.rotate_until(cond_1)
+        self.__grating.rotate_until(cond_1, direction=direction)
 
         start_of_light = False
         light_counter = 0
@@ -94,7 +94,7 @@ class Spectrometer:
                 )
             return False
 
-        self.__grating.rotate_until(cond_2)
+        self.__grating.rotate_until(cond_2, direction=direction)
         if start_of_light and dark_counter == self.TRUST_QUANTITY:
             return self.__find_middle(
                 start_of_light,
@@ -102,8 +102,37 @@ class Spectrometer:
             )
         return None
 
+    def __fix_default_position(self):
+        current_phi = self.__grating.current_degrees()
+        if not is_light():
+            forward_light = self.__find_first_light(direction=1)
+            self.__grating.rotate_to_degrees(current_phi)
+            backward_light = self.__find_first_light(direction=-1)
+            if forward_light-current_phi < current_phi-backward_light:
+                self.__phi0 = forward_light
+            else:
+                self.__phi0 = backward_light
+        else:
+            light_counter = 0
+            def cond_1():
+                # Начинаем с тёмной точки
+                nonlocal light_counter
+                if is_light():
+                    light_counter += 1
+                else:
+                    light_counter = 0
+                return light_counter == self.TRUST_QUANTITY
+            self.__grating.rotate_until(cond_1, direction=1)
+            light_finish = self.__grating.current_degrees()
+            self.__grating.rotate_to_degrees(current_phi)
+            self.__grating.rotate_until(cond_1, direction=-1)
+            light_start = self.__grating.current_degrees()
+            self.__phi0 = self.__find_middle(light_start, light_finish)
+        self.__grating.rotate_to_degrees(self.__phi0)
+
     def reset_initial_angle(self):
         self.__grating.align_to_grating(self.current_grating)
+        self.__fix_default_position()
         self.__phi0 = self.__grating.current_degrees()
 
     def calibrate(self, lengthwave):
