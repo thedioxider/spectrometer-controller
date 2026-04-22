@@ -1,7 +1,7 @@
 from math import isclose, sin, asin
 from SpectrometerGrating import SpectrometerGrating
-from necessary_functions import is_light, get_intensity
 from GratingParameters import  GratingParameters
+from Photoelement import Photoelement
 import json
 
 
@@ -10,11 +10,12 @@ class Spectrometer:
         self, grating: SpectrometerGrating, rotate_step=0.01, trust_quantity=2
     ):
         self.__grating = grating
+        self.current_grating = 0  # текущая решётка
         try:
             self.__load_parameters()  # пытаемся загрузить параметры, если они уже есть
+            self.rotate_to_default_degree()
         except FileNotFoundError:
             pass
-        self.current_grating = 0  # текущая решётка
         self.ROTATE_STEP = rotate_step  # шаг надо подбирать
         self.TRUST_QUANTITY = (
             trust_quantity  # количество точек, которое надо наблюдать, чтобы считать,
@@ -27,10 +28,11 @@ class Spectrometer:
 
         self.__gratings_parameters = [GratingParameters("grating_parameters.json", i)
                                       for i in range(3)]
+        self.__photoelement = Photoelement(0) #пин лучше в самом файле прописать
 
         # начальное положение решётки; угол, при котором угол
         # падения равен углу вторичной световой волны
-        self.reset_initial_angle()
+        # self.reset_initial_angle()
 
 
     def __save_parameters(self):
@@ -54,7 +56,7 @@ class Spectrometer:
     def __find_first_light(self, direction=1):
         """Если дифф-решётка отцентрована, то достаточно найти только один максимум"""
         dark_counter = 0
-        light_on_start = is_light()
+        light_on_start = self.__photoelement.is_light()
 
         degree_start = self.__grating.current_degrees()
 
@@ -63,7 +65,7 @@ class Spectrometer:
             if not light_on_start:
                 return True
             nonlocal dark_counter
-            if is_light():
+            if self.__photoelement.is_light():
                 dark_counter += 1
             else:
                 dark_counter = 0
@@ -79,7 +81,7 @@ class Spectrometer:
             nonlocal degree_start, dark_counter, light_counter, start_of_light
             if isclose(degree_start, self.__grating.current_degrees()):
                 return True
-            if not is_light():
+            if not self.__photoelement.is_light():
                 dark_counter += 1
                 light_counter = 0
             else:
@@ -104,7 +106,7 @@ class Spectrometer:
 
     def __fix_default_position(self):
         current_phi = self.__grating.current_degrees()
-        if not is_light():
+        if not self.__photoelement.is_light():
             forward_light = self.__find_first_light(direction=1)
             self.__grating.rotate_to_degrees(current_phi)
             backward_light = self.__find_first_light(direction=-1)
@@ -117,7 +119,7 @@ class Spectrometer:
             def cond_1():
                 # Начинаем с тёмной точки
                 nonlocal light_counter
-                if is_light():
+                if self.__photoelement.is_light():
                     light_counter += 1
                 else:
                     light_counter = 0
@@ -131,6 +133,7 @@ class Spectrometer:
         self.__grating.rotate_to_degrees(self.__phi0)
 
     def reset_initial_angle(self):
+        """Центруется по рисочке и фотоэлементу. Без включённого лазера не работает"""
         self.__grating.align_to_grating(self.current_grating)
         self.__fix_default_position()
         self.__phi0 = self.__grating.current_degrees()
@@ -204,7 +207,7 @@ class Spectrometer:
         self.__grating.rotate_to_degrees(self.__scan_from)
 
         def cond_1():
-            statistics.append((self.get_current_wavelength(), get_intensity()))
+            statistics.append((self.get_current_wavelength(), self.__photoelement.get_intensity()))
             return self.__grating.current_degrees() >= self.__scan_to
 
         self.__grating.rotate_until(cond_1)
