@@ -1,4 +1,3 @@
-from typing import Callable
 from SpectrometerOpticalPair import SpectrometerOpticalPair
 from SpectrometerMotor import SpectrometerMotor
 
@@ -51,6 +50,6 @@ class SpectrometerGrating:
         else:
             self.rotate_by_degrees(delta_2)
 
-    def rotate_until(self, cond: Callable[[], bool], direction=1):
+    def rotate_until(self, cond, direction=1):
         self.motor().rotate_until(cond, direction)
         self._current_degrees = self._fetch_degrees_from_motor()

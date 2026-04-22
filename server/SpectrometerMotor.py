@@ -1,4 +1,3 @@
-from typing import Callable
 from math import ceil
 from time import sleep, sleep_us
 from machine import Pin
@@ -78,7 +77,7 @@ class SpectrometerMotor:
         else:
             self.rotate_by_degrees(delta_2)
 
-    def rotate_until(self, cond: Callable[[], bool], direction=1):
+    def rotate_until(self, cond, direction=1):
         self.enable()
         self._set_direction(direction)
         while not cond():
