@@ -3,56 +3,60 @@ import ujson as json
 class GratingParameters:
     def __init__(self, filename="gratings.json"):
         self.filename = filename
-        self.current_id = 1
         self.gratings = []
         self._load_or_init()
+        self._parameters_in_using = ["groove_density_mm", "blaze_nm"]
 
     def _load_or_init(self):
         try:
             with open(self.filename, "r") as f:
                 data = json.load(f)
-                self.current_id = data.get("current_grating", 1)
                 self.gratings = data.get("installed_gratings", [])
         except:
-            self.gratings = [
-                {"id": 1, "groove_density_mm": 1200, "blaze_nm": 500},
-                {"id": 2, "groove_density_mm": 600, "blaze_nm": 400},
-                {"id": 3, "groove_density_mm": 300, "blaze_nm": 350}
-            ]
-            self._save()
+            pass
 
     def _save(self):
-        data = {"current_grating": self.current_id, "installed_gratings": self.gratings}
+        data = {"installed_gratings": [json.loads(g) for g in self.gratings]}
         with open(self.filename, "w") as f:
             json.dump(data, f)
 
-    def update(self, json_str):
+    def update_grating(self, json_str):
+        """Формат входных данных: {
+            "grating_id": 3,
+            "groove_density_mm": 1200,
+            "blaze_nm": 500
+        }"""
         data = json.loads(json_str)
-        if "gratings" not in data:
-            raise ValueError("Missing 'gratings' array")
-        self.gratings = data["gratings"]
-        ids = [g["id"] for g in self.gratings]
-        if self.current_id not in ids and ids:
-            self.current_id = ids[0]
-        self._save()
+        grating_id = data["grating_id"]
 
-    def set_active(self, grating_id):
-        ids = [g["id"] for g in self.gratings]
-        if grating_id not in ids:
+        grating_data = {}
+        for par in self._parameters_in_using:
+            if par not in data:
+                raise ValueError(f"Missing parameter: {par}")
+            grating_data[par] = data[par]
+
+        try:
+            self.gratings[grating_id] = grating_data
+        except IndexError:
             raise ValueError("Invalid grating ID")
-        self.current_id = grating_id
-        self._save()
 
-    def get_active_id(self):
-        return self.current_id
+        self._save()
 
     def to_json(self):
-        out = {"current_grating": self.current_id, "installed_gratings": []}
-        for g in self.gratings:
-            out["installed_gratings"].append({
-                "id": g["id"],
-                "groove_density_mm": g["groove_density_mm"],
-                "blaze_nm": g["blaze_nm"],
-                "is_active": g["id"] == self.current_id
-            })
+        """Возвращает json вида:
+        {
+          "gratings": [
+            {
+              "id": 1,
+              "groove_density_mm": 1200,
+              "blaze_nm": 500
+            }, ...
+          ]
+        }"""
+        out = {"installed_gratings": []}
+        for i, g in enumerate(self.gratings):
+            entry = {"id": i + 1}
+            for par in self._parameters_in_using:
+                entry[par] = g[par]
+            out["installed_gratings"].append(entry)
         return json.dumps(out)

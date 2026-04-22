@@ -40,7 +40,7 @@ class GratingsConfigDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_reset = QPushButton("Reset Template")
         btn_reset.clicked.connect(self._load_template)
-        btn_send = QPushButton("Send SET-GRATINGS")
+        btn_send = QPushButton("Send SET-GRATING")
         btn_send.clicked.connect(self._send)
         btn_close = QPushButton("Cancel")
         btn_close.clicked.connect(self.reject)
@@ -51,16 +51,14 @@ class GratingsConfigDialog(QDialog):
         self.setLayout(layout)
 
     def _load_template(self):
-        template = {"gratings": [{"id": 1, "groove_density_mm": 1200, "blaze_nm": 500},
-                                  {"id": 2, "groove_density_mm": 600, "blaze_nm": 400},
-                                  {"id": 3, "groove_density_mm": 300, "blaze_nm": 350}]}
+        template = {"id": 1, "groove_density_mm": 1200, "blaze_nm": 500}
         self.json_edit.setPlainText(json.dumps(template, indent=2))
 
     def _send(self):
         try:
             raw = self.json_edit.toPlainText().strip()
             json.loads(raw)
-            self.parent_gui.send_cmd(f"SET-GRATINGS {raw}")
+            self.parent_gui.send_cmd(f"SET-GRATING {raw}")
             self.accept()
         except json.JSONDecodeError as e:
             QMessageBox.warning(self, "JSON Error", str(e))
@@ -141,7 +139,7 @@ class SpectrometerGUI(QMainWindow):
         g = QGroupBox("Grating Configuration")
         layout = QFormLayout()
         self.gr_val = QSpinBox()
-        self.gr_val.setRange(1, 10)
+        self.gr_val.setRange(1, 3)
         self.gr_val.setValue(1)
         layout.addRow("Grating ID:", self.gr_val)
         hb = QHBoxLayout()

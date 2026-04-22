@@ -25,17 +25,15 @@ class CommandParser:
                 return "100.00 nm/min", "200 OK"
             elif "GRATING" in cmd and "?" not in cmd:
                 val = int(cmd.replace("GRATING", "").strip())
-                self.grating_params.set_active(val)
-                self.spec.current_grating = val
-                self.grating.align_to_grating(val)
+                self.spec.change_grating(val)
                 return str(val), "200 OK"
             elif cmd == "?GRATING":
-                return str(self.grating_params.get_active_id()), "200 OK"
+                return str(self.spec.get_current_grating()), "200 OK"
             elif cmd == "?GRATINGS":
                 return self.grating_params.to_json(), "200 OK"
-            elif cmd.startswith("SET-GRATINGS"):
-                payload = cmd[len("SET-GRATINGS"):].strip()
-                self.grating_params.update(payload)
+            elif cmd.startswith("SET-GRATING"):
+                val = int(cmd.replace("SET-GRATING", "").strip())
+                self.grating_params.update_grating(val)
                 return "Gratings updated", "200 OK"
             elif "SCAN-FROM" in cmd:
                 val = float(cmd.replace("SCAN-FROM", "").strip())

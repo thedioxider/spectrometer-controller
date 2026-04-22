@@ -10,7 +10,7 @@ class Spectrometer:
         self, grating: SpectrometerGrating, rotate_step=0.01, trust_quantity=2
     ):
         self.__grating = grating
-        self.current_grating = 0  # текущая решётка
+        self.__current_grating = 0  # текущая решётка
         try:
             self.__load_parameters()  # пытаемся загрузить параметры, если они уже есть
             self.rotate_to_default_degree()
@@ -37,13 +37,13 @@ class Spectrometer:
 
     def __save_parameters(self):
         """Сохраняет параметры в файл"""
-        with open(f"parameters{self.current_grating}.txt", "w") as file:
+        with open(f"parameters{self.__current_grating}.txt", "w") as file:
             file.write(str(self.__phi0))
             file.write(str(self.__k))
 
     def __load_parameters(self):
         """Загружает параметры из файла; бросает исключение, если файла нет"""
-        with open(f"parameters{self.current_grating}.txt", "r") as file:
+        with open(f"parameters{self.__current_grating}.txt", "r") as file:
             self.__phi0 = float(file.readline())
             self.__k = float(file.readline())
 
@@ -134,7 +134,7 @@ class Spectrometer:
 
     def reset_initial_angle(self):
         """Центруется по рисочке и фотоэлементу. Без включённого лазера не работает"""
-        self.__grating.align_to_grating(self.current_grating)
+        self.__grating.align_to_grating(self.__current_grating)
         self.__fix_default_position()
         self.__phi0 = self.__grating.current_degrees()
 
@@ -174,7 +174,7 @@ class Spectrometer:
         """Меняет решётку на следующую"""
         if self.__k:
             self.__save_parameters()
-        self.current_grating = (self.current_grating + 1) % 3
+        self.__current_grating = (self.__current_grating + 1) % 3
         try:
             self.__load_parameters()
         except FileNotFoundError:
@@ -186,7 +186,7 @@ class Spectrometer:
         """Меняет решётку на предыдущую"""
         if self.__k:
             self.__save_parameters()
-        self.current_grating = (self.current_grating + 2) % 3
+        self.__current_grating = (self.__current_grating + 2) % 3
         try:
             self.__load_parameters()
         except FileNotFoundError:
@@ -196,7 +196,7 @@ class Spectrometer:
 
     def get_current_grating(self):
         """Возвращает номер текущей решётки"""
-        return self.current_grating
+        return self.__current_grating
 
     def start_scan(self):
         """Выполняет сканирование с заданного угла до заданного угла
@@ -233,25 +233,11 @@ class Spectrometer:
             raise Exception("Требуется калибровка")
         self.__scan_to = scan_to
 
-    def get_gratings(self):
-        """Возращает json со всеми параметрами всех решёток"""
-        jsons = [gr.get_parameters() for gr in self.__gratings_parameters]
-        gratings = []
-        for i, s in enumerate(jsons):
-            grating = json.loads(s)
-            grating["id"] = i + 1
-            gratings.append(grating)
-        return json.dumps({"gratings": gratings})
-    def update_grating_parameters(self, parameters):
-        """Принимает json-строку с параметрами id, groove_density_mm и blaze_nm и обновляет параметры одной решётки"""
-        data = json.loads(parameters)
-        self.__gratings_parameters[data["id"]-1].update_parameters(parameters)
-
     def change_grating(self, new_grating):
         """Меняет решётку на заданную"""
         if new_grating < 0 or new_grating > 2:
             raise Exception("Неверный номер решётки")
-        elif (new_grating-self.current_grating)%3 == 1:
+        elif (new_grating-self.__current_grating)%3 == 1:
             self.__next_grating()
-        elif (new_grating-self.current_grating)%3 == 2:
+        elif (new_grating-self.__current_grating)%3 == 2:
             self.__prev_grating()
