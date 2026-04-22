@@ -123,10 +123,10 @@ class Spectrometer:
                     light_counter = 0
                 return light_counter == self.TRUST_QUANTITY
             self.__grating.rotate_until(cond_1, direction=1)
-            light_finish = self.__grating.current_degrees()
+            light_finish = self.__grating.current_degrees() - self.TRUST_QUANTITY + 1
             self.__grating.rotate_to_degrees(current_phi)
             self.__grating.rotate_until(cond_1, direction=-1)
-            light_start = self.__grating.current_degrees()
+            light_start = self.__grating.current_degrees() + self.TRUST_QUANTITY
             self.__phi0 = self.__find_middle(light_start, light_finish)
         self.__grating.rotate_to_degrees(self.__phi0)
 
