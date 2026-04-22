@@ -12,15 +12,11 @@ class SpectrometerGrating:
     ):
         self.__motor = motor
         self.__optical_pair = optical_pair
-        self._current_degrees = self._fetch_degrees_from_motor()
         self._center_offset = center_offset
         self._motor_ratio = motor_ratio
 
     def _convert_degrees_to_motor(self, degrees: float) -> float:
         return degrees * self._motor_ratio
-
-    def _fetch_degrees_from_motor(self) -> float:
-        return self.motor().current_degrees() / self._motor_ratio
 
     def motor(self) -> SpectrometerMotor:
         return self.__motor
@@ -29,7 +25,7 @@ class SpectrometerGrating:
         return self.__optical_pair
 
     def current_degrees(self) -> float:
-        return self._current_degrees
+        return self.motor().current_degrees() / self._motor_ratio
 
     def align_to_grating(self, grating_number: int):
         self.motor().rotate_until(lambda: self.optical_pair().is_receiving())
@@ -39,7 +35,6 @@ class SpectrometerGrating:
     def rotate_by_degrees(self, degrees: float):
         """Rotate by a certain number of degrees"""
         self.motor().rotate_by_degrees(self._convert_degrees_to_motor(degrees))
-        self._current_degrees = self._fetch_degrees_from_motor()
 
     def rotate_to_degrees(self, degrees: float):
         """Rotate to a certain position"""
@@ -52,4 +47,3 @@ class SpectrometerGrating:
 
     def rotate_until(self, cond, direction=1):
         self.motor().rotate_until(cond, direction)
-        self._current_degrees = self._fetch_degrees_from_motor()
