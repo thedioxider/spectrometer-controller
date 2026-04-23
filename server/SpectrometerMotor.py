@@ -1,11 +1,18 @@
 from math import ceil
 from time import sleep, sleep_us
 from machine import Pin
+import ujson as json
 
 
 class SpectrometerMotor:
     def __init__(
-        self, en_pin, dir_pin, pul_pin, revolution_steps: int = 6400, rate: int = 1000
+        self,
+        en_pin,
+        dir_pin,
+        pul_pin,
+        revolution_steps: int = 6400,
+        rate: int = 1000,
+        state_file: str = None,
     ):
         self.__EN = Pin(en_pin, Pin.OUT)
         self.__DIR = Pin(dir_pin, Pin.OUT)
@@ -19,6 +26,38 @@ class SpectrometerMotor:
         self.set_rate(rate)
         self.__guide = None
         self.__last_guided = self._current_steps
+        self.__state_file = state_file
+        if state_file is not None:
+            try:
+                self.load_state()
+            except OSError:
+                pass
+
+    def save_state(self):
+        """Persist current runtime state to state_file. No-op if no file configured."""
+        if self.__state_file is None:
+            return
+        payload = {
+            "current_steps": self._current_steps,
+            "revolution_steps": self._revolution_steps,
+            "last_guided": self.__last_guided,
+            "rate_steps": self.__rate_steps,
+            "step_value": self.__step_value,
+        }
+        with open(self.__state_file, "w") as file:
+            file.write(json.dumps(payload))
+
+    def load_state(self):
+        """Load state from state_file; raises OSError if file is missing."""
+        if self.__state_file is None:
+            return
+        with open(self.__state_file, "r") as file:
+            payload = json.loads(file.read())
+        # A change in revolution_steps invalidates the saved step counter.
+        if payload.get("revolution_steps") != self._revolution_steps:
+            return
+        self._current_steps = int(payload["current_steps"])
+        self.__last_guided = int(payload["last_guided"])
 
     def _make_step(self):
         # make sure to set EN and DIR before
