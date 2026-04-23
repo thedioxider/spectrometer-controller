@@ -48,7 +48,9 @@ def main() -> None:
         motor_ratio=180,
         calibrate_motor=True,
     )
-    spec = Spectrometer(grating, Photodiode(32), rotate_step=0.01, trust_quantity=3)
+    spec = Spectrometer(
+        grating, Photodiode(32), current_grating=1, rotate_step=0.01, trust_quantity=3
+    )
     parser = CommandParser(spec, state)
 
     with persist_motor_state_on_exit(grating_motor):
