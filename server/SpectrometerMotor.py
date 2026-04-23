@@ -4,7 +4,7 @@ from machine import Pin
 
 
 class SpectrometerMotor:
-    def __init__(self, en_pin, dir_pin, pul_pin, revolution_steps: int = 500):
+    def __init__(self, en_pin, dir_pin, pul_pin, revolution_steps: int = 6400):
         self.__EN = Pin(en_pin, Pin.OUT)
         self.__DIR = Pin(dir_pin, Pin.OUT)
         self.__PUL = Pin(pul_pin, Pin.OUT)
@@ -23,12 +23,12 @@ class SpectrometerMotor:
         self.__PUL.value(0)
         sleep_us(self.__rate_period)
         if self.__direction:
-            self._current_steps += 1
+            self._current_steps += self.__step_value
         else:
-            self._current_steps -= 1
+            self._current_steps -= self.__step_value
 
     def _set_direction(self, value):
-        if value > 0:
+        if value * self.__step_value > 0:
             self.__direction = 1
         else:
             self.__direction = 0
@@ -56,6 +56,7 @@ class SpectrometerMotor:
         """Set speed and direction of the motor"""
         self.__rate_steps = abs(rate)
         self.__rate_period = max(int(1_000_000 / self.__rate_steps) - 2, 2)
+        self.__step_value = (rate > 0) - (rate < 0)
 
     def rotate_by_steps(self, steps: int):
         """Rotate by a certain number of steps"""

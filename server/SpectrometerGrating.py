@@ -9,7 +9,7 @@ class SpectrometerGrating:
         gratings_signal: SpectrometerOpticalPair,
         motor_signal: SpectrometerOpticalPair,
         center_offset: float = 0,
-        motor_ratio: float = 60,
+        motor_ratio: float = 180,
     ):
         self.__motor = motor
         self.__gratings_signal = gratings_signal
