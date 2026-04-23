@@ -7,7 +7,7 @@ Manages Wi-Fi connection, component initialization, and server lifecycle.
 import uasyncio as asyncio
 import network
 from Hardware_state import HardwareState
-from spectrometer_mock import SpectrometerMock
+from Spectrometer import Spectrometer
 from command_parser import CommandParser
 from server import start_server_async
 
@@ -30,7 +30,7 @@ def main() -> None:
     ip = connect_wifi(WIFI_SSID, WIFI_PASSWORD)
 
     state = HardwareState()
-    spec = SpectrometerMock(rotate_step=0.01, trust_quantity=3)
+    spec = Spectrometer(rotate_step=0.01, trust_quantity=3)
     parser = CommandParser(spec, state)
 
     try:

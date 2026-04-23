@@ -2,10 +2,10 @@ import uasyncio as asyncio
 import ujson as json
 from GratingParameters import GratingParameters
 from Hardware_state import HardwareState
-from spectrometer_mock import SpectrometerMock
+from Spectrometer import Spectrometer
 
 class CommandParser:
-    def __init__(self, spectrometer: SpectrometerMock, state: HardwareState):
+    def __init__(self, spectrometer: Spectrometer, state: HardwareState):
         self.spec = spectrometer
         self.state = state
         self.grating_params = GratingParameters()
