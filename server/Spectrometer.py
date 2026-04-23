@@ -1,7 +1,7 @@
 from math import isclose, sin, asin
 from SpectrometerGrating import SpectrometerGrating
-from GratingParameters import  GratingParameters
-from Photoelement import Photoelement
+from GratingParameters import GratingParameters
+from Photodiode import Photodiode
 import json
 
 
@@ -26,14 +26,14 @@ class Spectrometer:
         self.__scan_from = 350
         self.__scan_to = 500
 
-        self.__gratings_parameters = [GratingParameters("grating_parameters.json", i)
-                                      for i in range(3)]
-        self.__photoelement = Photoelement(0) #пин лучше в самом файле прописать
+        self.__gratings_parameters = [
+            GratingParameters("grating_parameters.json", i) for i in range(3)
+        ]
+        self.__photoelement = Photodiode(0)  # пин лучше в самом файле прописать
 
         # начальное положение решётки; угол, при котором угол
         # падения равен углу вторичной световой волны
         # self.reset_initial_angle()
-
 
     def __save_parameters(self):
         """Сохраняет параметры в файл"""
@@ -110,12 +110,13 @@ class Spectrometer:
             forward_light = self.__find_first_light(direction=1)
             self.__grating.rotate_to_degrees(current_phi)
             backward_light = self.__find_first_light(direction=-1)
-            if forward_light-current_phi < current_phi-backward_light:
+            if forward_light - current_phi < current_phi - backward_light:
                 self.__phi0 = forward_light
             else:
                 self.__phi0 = backward_light
         else:
             light_counter = 0
+
             def cond_1():
                 # Начинаем с тёмной точки
                 nonlocal light_counter
@@ -124,6 +125,7 @@ class Spectrometer:
                 else:
                     light_counter = 0
                 return light_counter == self.TRUST_QUANTITY
+
             self.__grating.rotate_until(cond_1, direction=1)
             light_finish = self.__grating.current_degrees() - self.TRUST_QUANTITY + 1
             self.__grating.rotate_to_degrees(current_phi)
@@ -207,7 +209,9 @@ class Spectrometer:
         self.__grating.rotate_to_degrees(self.__scan_from)
 
         def cond_1():
-            statistics.append((self.get_current_wavelength(), self.__photoelement.get_intensity()))
+            statistics.append(
+                (self.get_current_wavelength(), self.__photoelement.get_intensity())
+            )
             return self.__grating.current_degrees() >= self.__scan_to
 
         self.__grating.rotate_until(cond_1)
@@ -237,7 +241,7 @@ class Spectrometer:
         """Меняет решётку на заданную"""
         if new_grating < 0 or new_grating > 2:
             raise Exception("Неверный номер решётки")
-        elif (new_grating-self.__current_grating)%3 == 1:
+        elif (new_grating - self.__current_grating) % 3 == 1:
             self.__next_grating()
-        elif (new_grating-self.__current_grating)%3 == 2:
+        elif (new_grating - self.__current_grating) % 3 == 2:
             self.__prev_grating()
