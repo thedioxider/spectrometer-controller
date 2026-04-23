@@ -104,29 +104,34 @@ class Spectrometer:
     def __fix_default_position(self):
         current_phi = self.__grating.current_degrees()
         if not self.__photoelement.is_light():
+            print("light off")
             forward_light = self.__find_first_light(direction=1)
+            print("first light found")
             self.__grating.rotate_to_degrees(current_phi)
             backward_light = self.__find_first_light(direction=-1)
+            print("second light found")
             if forward_light - current_phi < current_phi - backward_light:
                 self.__phi0 = forward_light
             else:
                 self.__phi0 = backward_light
         else:
-            light_counter = 0
+            print("light on")
+            dark_counter = 0
 
             def cond_1():
-                # Начинаем с тёмной точки
-                nonlocal light_counter
+                nonlocal dark_counter
                 if self.__photoelement.is_light():
-                    light_counter += 1
+                    dark_counter += 1
                 else:
-                    light_counter = 0
-                return light_counter == self.TRUST_QUANTITY
+                    dark_counter = 0
+                return dark_counter == self.TRUST_QUANTITY
 
             self.__grating.rotate_until(cond_1, direction=1)
             light_finish = self.__grating.current_degrees() - self.TRUST_QUANTITY + 1
+            print("first dark found")
             self.__grating.rotate_to_degrees(current_phi)
             self.__grating.rotate_until(cond_1, direction=-1)
+            print("second dark found")
             light_start = self.__grating.current_degrees() + self.TRUST_QUANTITY
             self.__phi0 = self.__find_middle(light_start, light_finish)
         self.__grating.rotate_to_degrees(self.__phi0)
@@ -134,11 +139,13 @@ class Spectrometer:
     def reset_initial_angle(self):
         """Центруется по рисочке и фотоэлементу. Без включённого лазера не работает"""
         self.__grating.align_to_grating(self.__current_grating)
+        print("grating aligned")
         self.__fix_default_position()
         self.__phi0 = self.__grating.current_degrees()
 
     def calibrate(self, lengthwave):
         """Функция калибровки спектрометра"""
+        print("calibrating started")
         self.reset_initial_angle()
 
         maximum = self.__find_first_light()
