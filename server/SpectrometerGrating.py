@@ -6,12 +6,14 @@ class SpectrometerGrating:
     def __init__(
         self,
         motor: SpectrometerMotor,
-        optical_pair: SpectrometerOpticalPair,
+        gratings_signal: SpectrometerOpticalPair,
+        motor_signal: SpectrometerOpticalPair,
         center_offset: float = 0,
         motor_ratio: float = 60,
     ):
         self.__motor = motor
-        self.__optical_pair = optical_pair
+        self.__gratings_signal = gratings_signal
+        self.__motor_signal = motor_signal
         self._center_offset = center_offset
         self._motor_ratio = motor_ratio
 
@@ -21,14 +23,17 @@ class SpectrometerGrating:
     def motor(self) -> SpectrometerMotor:
         return self.__motor
 
-    def optical_pair(self) -> SpectrometerOpticalPair:
-        return self.__optical_pair
+    def gratings_signal(self) -> SpectrometerOpticalPair:
+        return self.__gratings_signal
+
+    def motor_signal(self) -> SpectrometerOpticalPair:
+        return self.__motor_signal
 
     def current_degrees(self) -> float:
         return self.motor().current_degrees() / self._motor_ratio
 
     def align_to_grating(self, grating_number: int):
-        self.motor().rotate_until(lambda: self.optical_pair().is_receiving())
+        self.motor().rotate_until(lambda: self.gratings_signal().is_receiving())
         self.motor().rotate_by_degrees(self._center_offset + 120 * grating_number)
         self.motor().reset_step_counter()
 
