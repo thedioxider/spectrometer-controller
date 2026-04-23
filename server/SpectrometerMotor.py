@@ -32,6 +32,7 @@ class SpectrometerMotor:
             self.__direction = 1
         else:
             self.__direction = 0
+        self.__DIR.value(self.__direction)
 
     def reset_step_counter(self):
         self._current_steps = 0
