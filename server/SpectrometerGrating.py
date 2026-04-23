@@ -17,6 +17,8 @@ class SpectrometerGrating:
         self._center_offset = center_offset
         self._motor_ratio = motor_ratio
 
+        self.motor().set_guide(lambda: self.motor_signal().is_receiving())
+
     def _convert_degrees_to_motor(self, degrees: float) -> float:
         return degrees * self._motor_ratio
 
