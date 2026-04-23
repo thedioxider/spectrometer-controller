@@ -62,8 +62,21 @@ class CommandParser:
 
             elif cmd == "START-SCANS":
                 ans = self.spec.start_scan()
-                return ans, "200 OK"
+                return str(ans), "200 OK"
 
+            elif cmd.startswith("CALIBRATE"):
+                wl = float(cmd.replace("CALIBRATE", "").strip())
+                self.spec.calibrate(wl)
+                return f"Calibrating to {wl:.1f} nm", "200 OK"
+
+            elif cmd == "NEXT-GRATING":
+                self.spec.next_grating()
+                return "Switching to next grating", "200 OK"
+
+            elif cmd == "PREV-GRATING":
+                self.spec.prev_grating()
+                return "Switching to previous grating", "200 OK"
+            
             # elif cmd == "?SCAN-STATUS":
             #     return self.state.get_status_summary(), "200 OK"
             #
