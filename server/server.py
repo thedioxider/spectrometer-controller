@@ -1,17 +1,9 @@
-# server.py
-import socket
+import uasyncio as asyncio
 import ujson as json
 import network
-
-
-def connect_wifi(ssid: str, password: str):
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    if not wlan.isconnected():
-        wlan.connect(ssid, password)
-        while not wlan.isconnected():
-            pass
-    print("IP:", wlan.ifconfig()[0])
+from command_parser import CommandParser
+from Hardware_state import HardwareState
+from Spectrometer import Spectrometer
 
 
 def parse_request(raw: bytes):
@@ -25,65 +17,68 @@ def parse_request(raw: bytes):
     return method, path, headers, body
 
 
-def read_full_body(client, body, headers):
+async def read_full_body(reader, body, headers):
     length = int(headers.get("content-length", 0))
     while len(body) < length:
-        body += client.recv(min(1024, length - len(body)))
+        chunk = await reader.read(min(1024, length - len(body)))
+        if not chunk:
+            break
+        body += chunk
     return body
 
 
-def respond(client, status: str, payload):
+async def respond(writer, status: str, payload):
     body = json.dumps(payload).encode()
-    client.send(b"HTTP/1.0 " + status.encode() + b"\r\n")
-    client.send(b"Content-Type: application/json\r\n")
-    client.send(b"Content-Length: " + str(len(body)).encode() + b"\r\n\r\n")
-    client.send(body)
+    writer.write(b"HTTP/1.1 " + status.encode() + b"\r\n")
+    writer.write(b"Content-Type: application/json\r\n")
+    writer.write(b"Content-Length: " + str(len(body)).encode() + b"\r\n")
+    writer.write(b"\r\n")
+    writer.write(body)
+    await writer.drain()
 
 
-def handle_request(client, process_command):
-    raw = client.recv(2048)
-    if not raw:
-        return
-    method, path, headers, body = parse_request(raw)
+async def handle_request(reader, writer, parser: CommandParser):
+    try:
+        raw = await reader.read(2048)
+        if not raw:
+            writer.close()
+            return
+        method, path, headers, body = parse_request(raw)
 
-    if method == "GET" and path == "/":
-        return respond(client, "200 OK", {"ok": True, "service": "spectrometer"})
+        if method == "GET" and path == "/":
+            await respond(writer, "200 OK", {"ok": True, "service": "spectrometer"})
+        elif method == "POST" and path == "/api/spectrometer":
+            body = await read_full_body(reader, body, headers)
+            cmd = ""
+            try:
+                data = json.loads(body)
+                cmd = data.get("command", "")
+            except:
+                cmd = body.decode("utf-8", errors="ignore")
 
-    if method == "POST" and path == "/api/spectrometer":
-        body = read_full_body(client, body, headers)
-        cmd = ""
-        try:
-            data = json.loads(body)
-            cmd = data.get("command", "")
-        except:
-            cmd = body.decode("utf-8", errors="ignore")
-
-        try:
-            response_text, status = process_command(cmd)
-            is_json = response_text.startswith("{") or response_text.startswith("[")
-            if is_json:
-                respond(client, status, json.loads(response_text))
-            else:
-                respond(client, status, {"response": response_text})
-        except Exception as e:
-            respond(client, "500 Internal Error", {"error": str(e)})
-        return
-
-    respond(client, "404 Not Found", {"error": "not found"})
+            try:
+                response_text, status = parser.execute(cmd)
+                if isinstance(response_text, str) and (response_text.startswith("{") or response_text.startswith("[")):
+                    await respond(writer, status, json.loads(response_text))
+                else:
+                    await respond(writer, status, {"response": response_text})
+            except Exception as e:
+                await respond(writer, "500 Internal Error", {"error": str(e)})
+        else:
+            await respond(writer, "404 Not Found", {"error": "not found"})
+    except Exception as e:
+        print("Request error:", e)
+    finally:
+        writer.close()
 
 
-def start_server(process_command, port: int = 80):
-    addr = socket.getaddrinfo("0.0.0.0", port)[0][-1]
-    s = socket.socket()
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(addr)
-    s.listen(2)
-    print("Server listening on port", port)
+async def start_server_async(parser: CommandParser, port: int = 80):
+    server = await asyncio.start_server(
+        lambda reader, writer: handle_request(reader, writer, parser),
+        "0.0.0.0",
+        port
+    )
+    print(f"Server listening on port {port}")
     while True:
-        client, _ = s.accept()
-        try:
-            handle_request(client, process_command)
-        except Exception as e:
-            print("Error:", e)
-        finally:
-            client.close()
+        await asyncio.sleep(1)
+
