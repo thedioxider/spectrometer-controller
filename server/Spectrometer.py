@@ -7,7 +7,7 @@ import json
 
 class Spectrometer:
     def __init__(
-        self, grating: SpectrometerGrating, rotate_step=0.01, trust_quantity=2
+        self, grating: SpectrometerGrating, photodiode: Photodiode, rotate_step=0.01, trust_quantity=2
     ):
         self.__grating = grating
         self.__current_grating = 0  # текущая решётка
@@ -26,7 +26,7 @@ class Spectrometer:
         self.__scan_from = 350
         self.__scan_to = 500
 
-        self.__photoelement = Photodiode(0)  # пин лучше в самом файле прописать
+        self.__photoelement = photodiode
 
         # начальное положение решётки; угол, при котором угол
         # падения равен углу вторичной световой волны
