@@ -61,6 +61,7 @@ class Spectrometer:
             # Начинаем с тёмной точки
             if not light_on_start:
                 return True
+            print("where is dark")
             nonlocal dark_counter
             if self.__photoelement.is_light():
                 dark_counter += 1
@@ -69,6 +70,7 @@ class Spectrometer:
             return dark_counter == self.TRUST_QUANTITY
 
         self.__grating.rotate_until(cond_1, direction=direction)
+        print("we are dark")
 
         start_of_light = False
         light_counter = 0
@@ -94,11 +96,14 @@ class Spectrometer:
             return False
 
         self.__grating.rotate_until(cond_2, direction=direction)
+        print(start_of_light, dark_counter)
         if start_of_light and dark_counter == self.TRUST_QUANTITY:
             return self.__find_middle(
                 start_of_light,
                 self.__grating.current_degrees() - self.TRUST_QUANTITY + 1,
             )
+        print("returned none, why?")
+
         return None
 
     def __fix_default_position(self):
