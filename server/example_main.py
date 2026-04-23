@@ -1,5 +1,8 @@
-from ServerExample import connect_wifi, serve
+from time import sleep
+from server.Photodiode import Photodiode
 
 if __name__ == "__main__":
-    connect_wifi()
-    serve()
+    diode = Photodiode(13)
+    while True:
+        print(diode.get_voltage())
+        sleep(0.5)
