@@ -9,7 +9,7 @@ class Photodiode:
         self._koefficient = koefficient
 
     def get_voltage(self):
-        voltage = self._adc.read_uv()
+        voltage = self._adc.read_uv()/10000000
         return voltage
 
     def get_intensity_percent(self):
