@@ -159,6 +159,19 @@ class SpectrometerGUI(QMainWindow):
         main_layout.addWidget(self._create_speed_group())
         main_layout.addWidget(self._create_grating_group())
         main_layout.addWidget(self._create_scan_group())
+        #calibration
+        cal_box = QGroupBox("Calibration")
+        cal_layout = QFormLayout()
+        self.cal_wl_input = QDoubleSpinBox()
+        self.cal_wl_input.setRange(200.0, 1200.0)
+        self.cal_wl_input.setDecimals(1)
+        self.cal_wl_input.setValue(632.8)
+        cal_btn = QPushButton("Run Calibration")
+        cal_btn.clicked.connect(lambda: self._send_command(f"CALIBRATE {self.cal_wl_input.value():.1f}"))
+        cal_layout.addRow("Known Wavelength (nm):", self.cal_wl_input)
+        cal_layout.addRow(cal_btn)
+        cal_box.setLayout(cal_layout)
+        main_layout.addWidget(cal_box)
 
         # Raw command & Log
         raw_layout = QHBoxLayout()
@@ -179,6 +192,7 @@ class SpectrometerGUI(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("Disconnected")
+
 
     def _create_navigation_group(self) -> QGroupBox:
         box = QGroupBox("Wavelength Navigation")
@@ -240,6 +254,14 @@ class SpectrometerGUI(QMainWindow):
         btn_layout.addWidget(btn_list)
         layout.addRow(btn_layout)
         box.setLayout(layout)
+        nav_layout = QHBoxLayout()
+        btn_prev = QPushButton("◀ Prev")
+        btn_prev.clicked.connect(lambda: self._send_command("PREV-GRATING"))
+        btn_next = QPushButton("Next ▶")
+        btn_next.clicked.connect(lambda: self._send_command("NEXT-GRATING"))
+        nav_layout.addWidget(btn_prev)
+        nav_layout.addWidget(btn_next)
+        layout.addRow(nav_layout)
         return box
 
     def _create_scan_group(self) -> QGroupBox:
