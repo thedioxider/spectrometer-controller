@@ -48,7 +48,6 @@ class SpectrometerMotor:
         if self.__guide is not None and self.__guide():
             revolutions = self.current_steps() / self._revolution_steps
             full_revolutions = round(revolutions)
-            print(f"{revolutions} -> {full_revolutions}")
             self._current_steps = full_revolutions * self._revolution_steps
             self.__last_guided = self.current_steps()
 

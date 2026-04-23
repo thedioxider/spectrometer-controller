@@ -5,7 +5,7 @@ Entry point for the spectrometer server on ESP32.
 Manages Wi-Fi connection, component initialization, and server lifecycle.
 """
 
-from server.Photodiode import Photodiode
+from Photodiode import Photodiode
 import uasyncio as asyncio
 import network
 from Hardware_state import HardwareState
@@ -17,8 +17,8 @@ from command_parser import CommandParser
 from server import start_server_async
 
 # Network credentials. Replace with actual values or load from a configuration file.
-WIFI_SSID = "YOUR_WIFI_SSID"
-WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"
+WIFI_SSID = "dobriyden"
+WIFI_PASSWORD = "dendobriy"
 
 
 def connect_wifi(ssid: str, password: str) -> str:
@@ -42,6 +42,7 @@ def main() -> None:
         SpectrometerOpticalPair(26),
         SpectrometerOpticalPair(27),
         motor_ratio=180,
+        calibrate_motor=True,
     )
     spec = Spectrometer(grating, Photodiode(32), rotate_step=0.01, trust_quantity=3)
     parser = CommandParser(spec, state)

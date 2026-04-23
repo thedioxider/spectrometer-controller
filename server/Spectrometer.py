@@ -7,10 +7,10 @@ import json
 
 class Spectrometer:
     def __init__(
-        self, grating: SpectrometerGrating, photodiode: Photodiode, rotate_step=0.01, trust_quantity=2
+        self, grating: SpectrometerGrating, photodiode: Photodiode, current_grating: int = 0, rotate_step=0.01, trust_quantity=2
     ):
         self.__grating = grating
-        self.__current_grating = 0  # текущая решётка
+        self.__current_grating = current_grating  # текущая решётка
         try:
             self.__load_parameters()  # пытаемся загрузить параметры, если они уже есть
             self.rotate_to_default_degree()

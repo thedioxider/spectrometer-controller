@@ -19,7 +19,4 @@ if __name__ == "__main__":
     photodiode = Photodiode(32)
     spectrometer = Spectrometer(grating, photodiode)
 
-    grating.rotate_by_degrees(10)
-    grating.rotate_by_degrees(-10)
-    grating.rotate_by_degrees(10)
-    grating.rotate_by_degrees(-10)
+    grating.rotate_by_degrees(0.25)

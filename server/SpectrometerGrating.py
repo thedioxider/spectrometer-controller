@@ -10,6 +10,7 @@ class SpectrometerGrating:
         motor_signal: SpectrometerOpticalPair,
         center_offset: float = 0,
         motor_ratio: float = 180,
+        calibrate_motor: bool = False,
     ):
         self.__motor = motor
         self.__gratings_signal = gratings_signal
@@ -17,7 +18,8 @@ class SpectrometerGrating:
         self._center_offset = center_offset
         self._motor_ratio = motor_ratio
 
-        self.motor().set_guide(lambda: self.motor_signal().is_receiving())
+        if calibrate_motor:
+            self.motor().set_guide(lambda: self.motor_signal().is_receiving())
 
     def _convert_degrees_to_motor(self, degrees: float) -> float:
         return degrees * self._motor_ratio
