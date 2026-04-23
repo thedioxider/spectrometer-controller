@@ -14,7 +14,7 @@ class Spectrometer:
         try:
             self.__load_parameters()  # пытаемся загрузить параметры, если они уже есть
             self.rotate_to_default_degree()
-        except FileNotFoundError:
+        except OSError:
             pass
         self.ROTATE_STEP = rotate_step  # шаг надо подбирать
         self.TRUST_QUANTITY = (
@@ -26,9 +26,6 @@ class Spectrometer:
         self.__scan_from = 350
         self.__scan_to = 500
 
-        self.__gratings_parameters = [
-            GratingParameters("grating_parameters.json", i) for i in range(3)
-        ]
         self.__photoelement = Photodiode(0)  # пин лучше в самом файле прописать
 
         # начальное положение решётки; угол, при котором угол
@@ -179,7 +176,7 @@ class Spectrometer:
         self.__current_grating = (self.__current_grating + 1) % 3
         try:
             self.__load_parameters()
-        except FileNotFoundError:
+        except OSError:
             self.__phi0 = (self.__phi0 + 120) % 360
             self.__k = None
         self.rotate_to_default_degree()
@@ -191,7 +188,7 @@ class Spectrometer:
         self.__current_grating = (self.__current_grating + 2) % 3
         try:
             self.__load_parameters()
-        except FileNotFoundError:
+        except OSError:
             self.__phi0 = (self.__phi0 + 240) % 360
             self.__k = None
         self.rotate_to_default_degree()

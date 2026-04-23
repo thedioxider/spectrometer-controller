@@ -16,7 +16,7 @@ if __name__ == "__main__":
         SpectrometerOpticalPair(27),
         motor_ratio=180,
     )
-    # spectrometer = Spectrometer(grating)
+    spectrometer = Spectrometer(grating)
 
     grating.rotate_by_degrees(10)
     grating.rotate_by_degrees(-10)
