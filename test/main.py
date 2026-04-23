@@ -1,19 +1,26 @@
+"""
+main.py
+
+Entry point for the spectrometer server on ESP32.
+Manages Wi-Fi connection, component initialization, and server lifecycle.
+"""
+
+from server.Photodiode import Photodiode
+import uasyncio as asyncio
+import network
+from Hardware_state import HardwareState
+from Spectrometer import Spectrometer
+from SpectrometerGrating import SpectrometerGrating
 from SpectrometerMotor import SpectrometerMotor
-from PolarizingFilter import PolarizingFilter
-from machine import Pin, ADC
-from time import sleep
-PHOTODIODE_PIN = 32  # ADC input for intensity
+from SpectrometerOpticalPair import SpectrometerOpticalPair
+from command_parser import CommandParser
+from server import start_server_async
 
-# Hardware Init
-photodiode = ADC(Pin(PHOTODIODE_PIN))
-# photodiode.width(ADC.WIDTH_12BIT)
-# photodiode.atten(ADC.ATTN_11DB)
-
-led = Pin(2, Pin.OUT)
-u = float(photodiode.read_uv()) / 1000000.0
-print("start", u)
-while True:
-    u = float(photodiode.read_uv())/1000000.0
-    sleep(1)
-    print(u)
-
+grating = SpectrometerGrating(
+    SpectrometerMotor(19, 18, 21, revolution_steps=6400, rate=10000),
+    SpectrometerOpticalPair(26),
+    SpectrometerOpticalPair(27),
+    motor_ratio=180,
+)
+spec = Spectrometer(grating, Photodiode(32), rotate_step=0.01, trust_quantity=3)
+spec.calibrate(635)
