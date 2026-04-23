@@ -15,7 +15,9 @@ class CommandParser:
         cmd = cmd.strip().upper()
         try:
             if cmd.endswith("GOTO"):
+
                 val = float(cmd.replace("GOTO", "").strip())
+
                 self.spec.rotate_by_wavelength(val)
                 return f"{val:.3f} nm", "200 OK"
 
@@ -34,9 +36,7 @@ class CommandParser:
 
             elif cmd.endswith("GRATING") and "?" not in cmd:
                 val = int(cmd.replace("GRATING", "").strip())
-                from necessary_functions import default_degree
-                default_degree(val)
-                self.state.current_grating_id = val
+                self.spec.change_grating(val)
                 return str(val), "200 OK"
 
             elif cmd == "?GRATING":
@@ -53,29 +53,25 @@ class CommandParser:
             elif cmd.endswith("SCAN-FROM"):
                 val = float(cmd.replace("SCAN-FROM", "").strip())
                 self.spec.set_scan_from(val)
-                self.state.scan_from = val
                 return f"{val:.2f} nm", "200 OK"
 
             elif cmd.endswith("SCAN-TO"):
                 val = float(cmd.replace("SCAN-TO", "").strip())
                 self.spec.set_scan_to(val)
-                self.state.scan_to = val
                 return f"{val:.2f} nm", "200 OK"
 
             elif cmd == "START-SCANS":
-                if self.scan_task and not self.scan_task.done():
-                    return "Scan already in progress", "400 Bad Request"
-                self.scan_task = asyncio.create_task(self._run_scan())
-                return "Scan started", "200 OK"
+                ans = self.spec.start_scan()
+                return ans, "200 OK"
 
-            elif cmd == "?SCAN-STATUS":
-                return self.state.get_status_summary(), "200 OK"
-
-            elif cmd == "?SCAN-DATA":
-                if self.state.scan_status == "completed":
-                    data = self.state.get_scan_data()
-                    return json.dumps(data), "200 OK"
-                return "Scan not completed", "206 Partial Content"
+            # elif cmd == "?SCAN-STATUS":
+            #     return self.state.get_status_summary(), "200 OK"
+            #
+            # elif cmd == "?SCAN-DATA":
+            #     if self.state.scan_status == "completed":
+            #         data = self.state.get_scan_data()
+            #         return json.dumps(data), "200 OK"
+            #     return "Scan not completed", "206 Partial Content"
 
             else:
                 return f"Unknown: {cmd}", "400 Bad Request"
@@ -84,34 +80,3 @@ class CommandParser:
             return str(e), "400 Bad Request"
         except Exception as e:
             return str(e), "500 Internal Error"
-
-    async def _run_scan(self):
-        self.state.update_scan_status("running", 0.0)
-        self.state.clear_scan_buffer()
-        try:
-            from necessary_functions import rotate_by_degree, rotate_by_step, get_intensity, current_degree
-            import uasyncio as asyncio
-
-            start_deg = self.state.scan_from
-            stop_deg = self.state.scan_to
-
-            rotate_by_degree(start_deg - current_degree())
-            await asyncio.sleep(0.1)
-
-            step_deg = 0.01
-            current = current_degree()
-
-            while current < stop_deg:
-                rotate_by_degree(step_deg)
-                await asyncio.sleep(0.05)
-                intensity = get_intensity()
-                current = current_degree()
-                self.state.append_scan_point(current, intensity)
-                progress = (current - start_deg) / (stop_deg - start_deg) * 100
-                self.state.update_scan_status("running", min(progress, 100.0))
-
-            self.state.update_scan_status("completed", 100.0)
-
-        except Exception as e:
-            self.state.update_scan_status("error", 0.0)
-            self.state.error_message = str(e)
